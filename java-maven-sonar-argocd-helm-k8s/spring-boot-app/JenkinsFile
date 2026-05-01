@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    SONAR_URL = "http://YOUR_SONAR_IP:9000"
+    SONAR_URL = "http://98.93.245.142:9000"
     DOCKER_IMAGE = "mohdfarhan311/ultimate-cicd:${BUILD_NUMBER}"
   }
 
