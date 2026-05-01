@@ -1,31 +1,72 @@
-<build>
-    <finalName>spring-boot-web</finalName>
+<?xml version="1.0" encoding="UTF-8"?>
 
-    <plugins>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-        <!-- Spring Boot -->
-        <plugin>
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.abhishek</groupId>
+    <artifactId>spring-boot-demo</artifactId>
+    <version>1.0</version>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.2.4.RELEASE</version>
+    </parent>
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-        </plugin>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
 
-        <!-- Compiler -->
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.8.0</version>
-            <configuration>
-                <source>${java.version}</source>
-                <target>${java.version}</target>
-            </configuration>
-        </plugin>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
 
-        <!-- ✅ FIX: Sonar Plugin (IMPORTANT) -->
-        <plugin>
-            <groupId>org.sonarsource.scanner.maven</groupId>
-            <artifactId>sonar-maven-plugin</artifactId>
-            <version>3.9.1.2184</version>
-        </plugin>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
 
-    </plugins>
-</build>
+    </dependencies>
+
+    <build>
+        <finalName>spring-boot-web</finalName>
+
+        <plugins>
+
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.0</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>3.9.1.2184</version>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>
