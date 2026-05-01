@@ -6,58 +6,67 @@ pipeline {
     }
   }
 
+  environment {
+    SONAR_URL = "http://98.93.245.142:9000"
+    APP_DIR = "java-maven-sonar-argocd-helm-k8s/spring-boot-app"
+    IMAGE_NAME = "mohdfarhan311/ultimate-cicd:${BUILD_NUMBER}"
+  }
+
   stages {
-    stage('Setup Docker CLI') {
-      steps {
-        sh '''
-          apt-get update
-          apt-get install -y docker.io
-        '''
-      }
-    }
 
     stage('Checkout') {
       steps {
-        sh 'echo passed'
-        //git branch: 'main', url: 'https://github.com/MohdFarhan311/Jenkins-Zero-To-Hero.git'
+        git branch: 'main',
+            url: 'https://github.com/MohdFarhan311/Jenkins-Zero-To-Hero.git'
+      }
+    }
+
+    stage('Setup Docker CLI') {
+      steps {
+        sh '''
+          apt-get update -y
+          apt-get install -y docker.io
+          docker --version
+        '''
       }
     }
 
     stage('Build and Test') {
       steps {
-        sh 'ls -ltr'
-        sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
+        sh '''
+          cd $APP_DIR
+          mvn clean package
+        '''
       }
     }
 
-    stage('Static Code Analysis') {
-      environment {
-        SONAR_URL = "http://98.93.245.142:9000"
-      }
+    stage('Static Code Analysis (SonarQube)') {
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
           sh '''
-            cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
-            mvn sonar:sonar \
-            -Dsonar.login=$SONAR_AUTH_TOKEN \
-            -Dsonar.host.url=${SONAR_URL}
+            cd $APP_DIR
+            mvn clean verify sonar:sonar \
+              -Dsonar.login=$SONAR_AUTH_TOKEN \
+              -Dsonar.host.url=$SONAR_URL
           '''
         }
       }
     }
 
-    stage('Build and Push Docker Image') {
-      environment {
-        DOCKER_IMAGE = "mohdfarhan311/ultimate-cicd:${BUILD_NUMBER}"
+    stage('Build Docker Image') {
+      steps {
+        sh '''
+          cd $APP_DIR
+          docker build -t $IMAGE_NAME .
+        '''
       }
+    }
+
+    stage('Push Docker Image') {
       steps {
         script {
-          sh '''
-            cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
-            docker build -t ${DOCKER_IMAGE} .
-          '''
-          def dockerImage = docker.image("${DOCKER_IMAGE}")
-          docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
+          def dockerImage = docker.image("${IMAGE_NAME}")
+          docker.withRegistry('https://index.docker.io/v1/', 'docker-cred') {
             dockerImage.push()
           }
         }
@@ -65,22 +74,35 @@ pipeline {
     }
 
     stage('Update Deployment File') {
-      environment {
-        GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
-        GIT_USER_NAME = "MohdFarhan311"
-      }
       steps {
         withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
           sh '''
-            git config user.email "blaugranathe93@gmail.com"
+            git config user.email "you@example.com"
             git config user.name "MohdFarhan311"
-            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+
+            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" \
+            java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+
             git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-            git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+            git commit -m "Updated image tag ${BUILD_NUMBER}" || true
+
+            git push https://${GITHUB_TOKEN}@github.com/MohdFarhan311/Jenkins-Zero-To-Hero.git HEAD:main
           '''
         }
       }
+    }
+
+  }
+
+  post {
+    always {
+      echo 'Pipeline completed'
+    }
+    success {
+      echo 'Build SUCCESS 🚀'
+    }
+    failure {
+      echo 'Build FAILED ❌'
     }
   }
 }
