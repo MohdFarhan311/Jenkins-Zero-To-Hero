@@ -1,60 +1,71 @@
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    SONAR_URL = "http://98.93.245.142:9000"
-    DOCKER_IMAGE = "mohdfarhan311/ultimate-cicd:${BUILD_NUMBER}"
-  }
-
-  stages {
-
-    stage('Checkout') {
-      steps {
-        git branch: 'main', url: 'https://github.com/MohdFarhan311/Jenkins-Zero-To-Hero.git'
-      }
+    environment {
+        SONAR_URL = "http://98.93.245.142:9000"
+        DOCKER_IMAGE = "mohdfarhan311/ultimate-cicd:${BUILD_NUMBER}"
     }
 
-    stage('Build') {
-      steps {
-        sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
-      }
-    }
+    stages {
 
-    stage('Static Code Analysis') {
-      steps {
-        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh '''
-            cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
-            mvn clean verify sonar:sonar \
-            -Dsonar.host.url=$SONAR_URL \
-            -Dsonar.login=$SONAR_AUTH_TOKEN
-          '''
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
         }
-      }
-    }
 
-    stage('Docker Build & Push') {
-      steps {
-        sh '''
-          cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
-          docker build -t $DOCKER_IMAGE .
-        '''
-
-        script {
-          docker.withRegistry('https://index.docker.io/v1/', 'docker-cred') {
-            docker.image(DOCKER_IMAGE).push()
-          }
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/MohdFarhan311/Jenkins-Zero-To-Hero.git'
+            }
         }
-      }
-    }
 
-    stage('Update K8s Manifest') {
-      steps {
-        sh '''
-          sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-        '''
-      }
-    }
+        stage('Build') {
+            steps {
+                sh '''
+                    cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+                    mvn clean package
+                '''
+            }
+        }
 
-  }
+        stage('Static Code Analysis (Sonar)') {
+            steps {
+                withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+                    sh '''
+                        cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+
+                        mvn clean verify sonar:sonar \
+                        -Dsonar.projectKey=spring-boot-demo \
+                        -Dsonar.host.url=$SONAR_URL \
+                        -Dsonar.login=$SONAR_AUTH_TOKEN
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    sh '''
+                        cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+                        docker build -t $DOCKER_IMAGE .
+                    '''
+
+                    docker.withRegistry('https://index.docker.io/v1/', 'docker-cred') {
+                        docker.image(DOCKER_IMAGE).push()
+                    }
+                }
+            }
+        }
+
+        stage('Update K8s Manifest') {
+            steps {
+                sh '''
+                    sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" \
+                    java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+                '''
+            }
+        }
+    }
 }
